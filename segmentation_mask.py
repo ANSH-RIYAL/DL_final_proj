@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import sys
 
-netid = int(sys.argv[1])
+netid = sys.argv[1]
 net_id = 'ar7964'
 
 all_sequences = []
