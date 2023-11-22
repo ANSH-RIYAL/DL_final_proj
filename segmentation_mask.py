@@ -8,25 +8,34 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
-# Video 1
+net_id = 'ar7964
 
-frames = []
+all_sequences = []
+all_sequence_masks = []
 
-base_dir = './Dataset_Student/train/video_0/'
+num_videos = 1000
+num_frames_per_video = 22
 
-image_names = [f'image_{i}.png' for i in range(22)]
+for i in range(num_videos):
+    frames = torch.tensor([])
+    base_dir = f"~/scratch/{net_id}/Dataset_Student/train/video_{i}/"
+    image_names = [f'image_{i}.png' for i in range(num_frames_per_video)]
+    for file_name in image_names:
+        img = plt.imread(base_dir + file_name)
+        frames = torch.cat([frames,torch.tensor(img).unsqueeze(0)], dim = 0)
+    all_sequences.append(torch.tensor(frames))
+    mask = np.load(base_dir + 'mask.npy')
+    all_sequence_masks.append(torch.tensor(mask))
+    
+all_frames = torch.cat([i for i in all_sequences], dim = 0)
+all_masks = torch.cat([i for i in all_sequence_masks], dim = 0)
 
-for file_name in image_names:
-    img = plt.imread(base_dir + file_name)
-    frames.append(img)
-
-mask = np.load(base_dir + 'mask.npy')
 
 class FCN(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_input_channels=3, num_classes=49):
         super(FCN, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(num_input_channels, 64, kernel_size=3, padding=1)
         self.conv2 = nn.Conv2d(64, 128, kernel_size=5, padding=2)
         self.conv3 = nn.Conv2d(128, 256, kernel_size=5, padding=2)
         self.conv4 = nn.Conv2d(256, 512, kernel_size=5, padding=2)
@@ -74,18 +83,19 @@ class CustomDataset(Dataset):
         return frame, mask
 
 # Hyperparameters
+num_input_channels = 3
 num_classes = 49
 batch_size = 8
 learning_rate = 0.001
 num_epochs = 10
 
 # Instantiate the model and set up the optimizer and loss function
-model = FCN(num_classes)
+model = FCN(num_input_channels, num_classes)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = nn.CrossEntropyLoss()
 
 # Create DataLoader
-train_dataset = CustomDataset(frames, mask)
+train_dataset = CustomDataset(all_frames, all_masks)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 train_loss = []
