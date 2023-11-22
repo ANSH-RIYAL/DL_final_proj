@@ -21,7 +21,7 @@ num_frames_per_video = 22
 
 for i in range(num_videos):
     frames = torch.tensor([])
-    base_dir = f"~/scratch/{net_id}/Dataset_Student/train/video_{i}/"
+    base_dir = f"./../../../scratch/{net_id}/dataset_videos/dataset/train/video_{i}/"
     image_names = [f'image_{i}.png' for i in range(num_frames_per_video)]
     for file_name in image_names:
         img = plt.imread(base_dir + file_name)
