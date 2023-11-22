@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+from tqdm import tqdm
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -29,10 +31,10 @@ for i in range(num_videos):
     all_sequences.append(torch.tensor(frames))
     mask = np.load(base_dir + 'mask.npy')
     all_sequence_masks.append(torch.tensor(mask))
-    
+
 all_frames = torch.cat([i for i in all_sequences], dim = 0)
 all_masks = torch.cat([i for i in all_sequence_masks], dim = 0)
-
+print(f"All frames and masks loaded,\nShape of frames : {all_frames.shape}, Shape of masks: {all_masks.shape}")
 
 class FCN(nn.Module):
     def __init__(self, num_input_channels=3, num_classes=49):
@@ -101,17 +103,19 @@ criterion = nn.CrossEntropyLoss()
 train_dataset = CustomDataset(all_frames, all_masks)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
+print('Dataset created, starting training')
+
 train_loss = []
 # Training loop
 for epoch in range(num_epochs):
     total_loss = 0
-    for images, masks in train_loader:
+    for images, masks in tqdm(train_loader):
         images, masks = images.cuda(), masks.cuda()
         optimizer.zero_grad()
         outputs = model(images)
 #         masks = masks.argmax(dim=1)
         masks = masks.long()
-        print(outputs.shape, masks.shape)
+        # print(outputs.shape, masks.shape)
         loss = criterion(outputs, masks)
         loss.backward()
         optimizer.step()
@@ -121,8 +125,10 @@ for epoch in range(num_epochs):
     train_loss.append(average_loss)
     print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {average_loss:.4f}")
 
-# Save the trained model if needed
-torch.save(model.state_dict(), 'fcn_model.pth')
+    # Save the trained model if needed
+    torch.save(model.state_dict(), 'fcn_model.pth')
+
+
 plt.plot(train_loss)
 plt.xlabel('Epochs')
 plt.ylabel('Training loss')
