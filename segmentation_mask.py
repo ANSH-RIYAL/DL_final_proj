@@ -14,8 +14,8 @@ import sys
 
 
 class CustomDataset(Dataset):
-    def __init__(self, all_frames, all_masks):
-        self.frames = torch.tensor(all_frames_ij).permute(0, 3, 1, 2)
+    def __init__(self, all_frames):
+        self.frames = torch.tensor(all_frames).permute(0, 3, 1, 2)
 #         self.masks = all_masks.cuda()
 
     def __len__(self):
@@ -113,7 +113,7 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = nn.CrossEntropyLoss()
 
 # Create DataLoader
-train_dataset = CustomDataset(all_frames, all_masks)
+train_dataset = CustomDataset(all_frames) #, all_masks)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 print('Dataset created, starting training')
