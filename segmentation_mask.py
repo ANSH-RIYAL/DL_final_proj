@@ -15,7 +15,7 @@ import sys
 
 class CustomDataset(Dataset):
     def __init__(self, all_frames):
-        self.frames = torch.tensor(all_frames).permute(0, 3, 1, 2)
+        self.frames = torch.tensor(all_frames)
 #         self.masks = all_masks.cuda()
 
     def __len__(self):
@@ -23,11 +23,9 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         global net_id
-        frame_dir_ij = self.frames[idx]
-        i,j = frame_dir
-#         mask_dir = self.masks[idx]
+        i,j = self.frames[idx]
         file_path = f"./../../../scratch/{net_id}/dataset_videos/dataset/train/video_{i}/image_{j}.png"
-        frame = torch.tensor(plt.imread(file_path))
+        frame = torch.tensor(plt.imread(file_path)).permute(2, 0, 1)
 
         file_path = f"./../../../scratch/{net_id}/dataset_videos/dataset/train/video_{i}/mask.npy"
         mask = np.load(file_path)[j]
@@ -43,7 +41,11 @@ all_sequence_masks = []
 num_videos = 1000
 num_frames_per_video = 22
 
-all_frames = torch.tensor([[[i,j] for j in range(num_frames_per_video)] for i in range(num_videos)])
+all_frames = [[[i,j] for j in range(num_frames_per_video)] for i in range(num_videos)]
+t = []
+for i in all_frames:
+    t += i
+all_frames = torch.tensor(t)
 # 1000 X 22
 
 # for i in range(num_videos):
