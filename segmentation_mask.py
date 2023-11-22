@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
@@ -89,6 +88,7 @@ criterion = nn.CrossEntropyLoss()
 train_dataset = CustomDataset(frames, mask)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
+train_loss = []
 # Training loop
 for epoch in range(num_epochs):
     total_loss = 0
@@ -104,7 +104,13 @@ for epoch in range(num_epochs):
         total_loss += loss.item()
 
     average_loss = total_loss / len(train_loader)
+    train_loss.append(average_loss)
     print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {average_loss:.4f}")
 
 # Save the trained model if needed
 torch.save(model.state_dict(), 'fcn_model.pth')
+plt.plot(train_loss)
+plt.xlabel('Epochs')
+plt.ylabel('Training loss')
+plt.title('Epoch v/s Train loss')
+plt.savefig("epoch_loss.jpg")
