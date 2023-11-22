@@ -12,8 +12,30 @@ from torch.utils.data import Dataset, DataLoader
 
 import sys
 
-netid = sys.argv[1]
-net_id = 'ar7964'
+
+class CustomDataset(Dataset):
+    def __init__(self, all_frames, all_masks):
+        self.frames = torch.tensor(all_frames_ij).permute(0, 3, 1, 2)
+#         self.masks = all_masks.cuda()
+
+    def __len__(self):
+        return len(self.frames)
+
+    def __getitem__(self, idx):
+        global net_id
+        frame_dir_ij = self.frames[idx]
+        i,j = frame_dir
+#         mask_dir = self.masks[idx]
+        file_path = f"./../../../scratch/{net_id}/dataset_videos/dataset/train/video_{i}/image_{j}.png"
+        frame = torch.tensor(plt.imread(file_path))
+
+        file_path = f"./../../../scratch/{net_id}/dataset_videos/dataset/train/video_{i}/mask.npy"
+        mask = np.load(file_path)[j]
+        return frame, mask
+
+
+net_id = sys.argv[1]
+# net_id = 'ar7964'
 
 all_sequences = []
 all_sequence_masks = []
@@ -21,20 +43,23 @@ all_sequence_masks = []
 num_videos = 1000
 num_frames_per_video = 22
 
-for i in range(num_videos):
-    frames = torch.tensor([])
-    base_dir = f"./../../../scratch/{net_id}/dataset_videos/dataset/train/video_{i}/"
-    image_names = [f'image_{i}.png' for i in range(num_frames_per_video)]
-    for file_name in image_names:
-        img = plt.imread(base_dir + file_name)
-        frames = torch.cat([frames,torch.tensor(img).unsqueeze(0)], dim = 0)
-    all_sequences.append(torch.tensor(frames))
-    mask = np.load(base_dir + 'mask.npy')
-    all_sequence_masks.append(torch.tensor(mask))
+all_frames = torch.tensor([[[i,j] for j in range(num_frames_per_video)] for i in range(num_videos)])
+# 1000 X 22
 
-all_frames = torch.cat([i for i in all_sequences], dim = 0)
-all_masks = torch.cat([i for i in all_sequence_masks], dim = 0)
-print(f"All frames and masks loaded,\nShape of frames : {all_frames.shape}, Shape of masks: {all_masks.shape}")
+# for i in range(num_videos):
+#     frames = torch.tensor([])
+#     base_dir = f"./../../../scratch/{net_id}/dataset_videos/dataset/train/video_{i}/"
+#     image_names = [f'image_{i}.png' for i in range(num_frames_per_video)]
+#     for file_name in image_names:
+#         img = plt.imread(base_dir + file_name)
+#         frames = torch.cat([frames,torch.tensor(img).unsqueeze(0)], dim = 0)
+#     all_sequences.append(torch.tensor(frames))
+#     mask = np.load(base_dir + 'mask.npy')
+#     all_sequence_masks.append(torch.tensor(mask))
+
+# all_frames = torch.cat([i for i in all_sequences], dim = 0)
+# all_masks = torch.cat([i for i in all_sequence_masks], dim = 0)
+# print(f"All frames and masks loaded,\nShape of frames : {all_frames.shape}, Shape of masks: {all_masks.shape}")
 
 class FCN(nn.Module):
     def __init__(self, num_input_channels=3, num_classes=49):
@@ -74,18 +99,6 @@ class FCN(nn.Module):
 
 
 
-class CustomDataset(Dataset):
-    def __init__(self, all_frames, all_masks):
-        self.frames = torch.tensor(all_frames).permute(0, 3, 1, 2)
-        self.masks = all_masks.cuda() #torch.stack([ohe_mask(mask) for mask in all_masks]).permute(0,3,1,2)
-
-    def __len__(self):
-        return len(self.frames)
-
-    def __getitem__(self, idx):
-        frame = self.frames[idx]
-        mask = self.masks[idx]
-        return frame, mask
 
 # Hyperparameters
 num_input_channels = 3
