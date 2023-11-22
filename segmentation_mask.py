@@ -8,7 +8,10 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
-net_id = 'ar7964
+import sys
+
+netid = int(sys.argv[1])
+net_id = 'ar7964'
 
 all_sequences = []
 all_sequence_masks = []
@@ -72,7 +75,7 @@ class FCN(nn.Module):
 class CustomDataset(Dataset):
     def __init__(self, all_frames, all_masks):
         self.frames = torch.tensor(all_frames).permute(0, 3, 1, 2)
-        self.masks = all_masks #torch.stack([ohe_mask(mask) for mask in all_masks]).permute(0,3,1,2)
+        self.masks = all_masks.cuda() #torch.stack([ohe_mask(mask) for mask in all_masks]).permute(0,3,1,2)
 
     def __len__(self):
         return len(self.frames)
@@ -90,7 +93,7 @@ learning_rate = 0.001
 num_epochs = 10
 
 # Instantiate the model and set up the optimizer and loss function
-model = FCN(num_input_channels, num_classes)
+model = FCN(num_input_channels, num_classes).cuda()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = nn.CrossEntropyLoss()
 
@@ -103,6 +106,7 @@ train_loss = []
 for epoch in range(num_epochs):
     total_loss = 0
     for images, masks in train_loader:
+        images, masks = images.cuda(), masks.cuda()
         optimizer.zero_grad()
         outputs = model(images)
 #         masks = masks.argmax(dim=1)
