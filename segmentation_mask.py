@@ -293,6 +293,10 @@ num_epochs = 10
 
 # Instantiate the model and set up the optimizer and loss function
 model = FCN(num_input_channels, num_classes).to(device)
+try:
+    model.load_state_dict(torch.load('fcn_model.pth'))
+except:
+    continue
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = nn.CrossEntropyLoss()
 
