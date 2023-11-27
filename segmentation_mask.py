@@ -12,6 +12,8 @@ from torch.utils.data import Dataset, DataLoader
 
 import sys
 
+device = torch.device('cuda' if torch.backends.cuda.is_available() else 'cpu')
+print(device)
 
 class CustomDataset(Dataset):
     def __init__(self, all_frames):
@@ -46,6 +48,7 @@ t = []
 for i in all_frames:
     t += i
 all_frames = torch.tensor(t)
+
 # 1000 X 22
 
 # for i in range(num_videos):
@@ -74,16 +77,16 @@ class FCN(nn.Module):
         self.bc_u2_c3 = nn.ConvTranspose2d(128,128, kernel_size=4, stride=4, padding=0)
         self.bcnorm2 = nn.BatchNorm2d(128)
         
-        self.bc_u3_c4 = nn.ConvTranspose2d(256,256, kernel_size=8, stride=8, padding=0)
-        self.bcnorm3 = nn.BatchNorm2d(256)
+        self.bc_u3_c4 = nn.ConvTranspose2d(128,128, kernel_size=8, stride=8, padding=0)
+        self.bcnorm3 = nn.BatchNorm2d(128)
         
-        self.bc_u4_c5 = nn.ConvTranspose2d(512,512, kernel_size=8, stride=8, padding=0)
-        self.bcnorm4 = nn.BatchNorm2d(512)
+        self.bc_u4_c5 = nn.ConvTranspose2d(128,128, kernel_size=8, stride=8, padding=0)
+        self.bcnorm4 = nn.BatchNorm2d(128)
         
-        self.bc_u5_c6 = nn.ConvTranspose2d(512,256, kernel_size=4, stride=4, padding=0)
-        self.bcnorm5 = nn.BatchNorm2d(256)
+        self.bc_u5_c6 = nn.ConvTranspose2d(128,128, kernel_size=4, stride=4, padding=0)
+        self.bcnorm5 = nn.BatchNorm2d(128)
         
-        self.bc_u6_c7 = nn.ConvTranspose2d(256,128, kernel_size=4, stride=2, padding=1)
+        self.bc_u6_c7 = nn.ConvTranspose2d(128,128, kernel_size=4, stride=2, padding=1)
         self.bcnorm6 = nn.BatchNorm2d(128)
         
         
@@ -94,15 +97,15 @@ class FCN(nn.Module):
         self.conv2 = nn.Conv2d(64*2, 128, kernel_size=5, padding=2)
         self.bnorm1 = nn.BatchNorm2d(128)
         
-        self.conv3 = nn.Conv2d(128*2, 256, kernel_size=9, padding=4)
+        self.conv3 = nn.Conv2d(128*2, 128, kernel_size=9, padding=4)
         
-        self.conv4 = nn.Conv2d(256*2, 512, kernel_size=15, padding=7)
-        self.bnorm2 = nn.BatchNorm2d(512)
+        self.conv4 = nn.Conv2d(128*2, 128, kernel_size=15, padding=7)
+        self.bnorm2 = nn.BatchNorm2d(128)
 
-        self.conv5 = nn.Conv2d(512*2, 256, kernel_size=15, padding=7)
-        self.bnorm3 = nn.BatchNorm2d(256)
+        self.conv5 = nn.Conv2d(128*2, 128, kernel_size=15, padding=7)
+        self.bnorm3 = nn.BatchNorm2d(128)
         
-        self.conv6 = nn.Conv2d(256*2,128, kernel_size=9, padding=4)
+        self.conv6 = nn.Conv2d(128*2,128, kernel_size=9, padding=4)
         
         self.conv7 = nn.Conv2d(128*2,64, kernel_size=5, padding=2)
         self.bnorm4 = nn.BatchNorm2d(64)
@@ -118,24 +121,24 @@ class FCN(nn.Module):
         self.ubnorm1 = nn.BatchNorm2d(128)
         
         # b, 128, 40, 60
-        self.uconv3 = nn.Conv2d(128, 256, kernel_size=9, padding=4)
+        self.uconv3 = nn.Conv2d(128, 128, kernel_size=9, padding=4)
         self.ump2 = nn.MaxPool2d(kernel_size= 2)
         
-        # b, 256, 20, 30
-        self.uconv4 = nn.Conv2d(256, 512, kernel_size=15, padding=7)
-        self.ubnorm2 = nn.BatchNorm2d(512)
+        # b, 128, 20, 30
+        self.uconv4 = nn.Conv2d(128, 128, kernel_size=15, padding=7)
+        self.ubnorm2 = nn.BatchNorm2d(128)
 
-        # b, 512, 20, 30
-        self.uconv5 = nn.Conv2d(512, 256, kernel_size=15, padding=7)
-        self.ubnorm3 = nn.BatchNorm2d(256)
-        self.upsamp1 = nn.ConvTranspose2d(256,512, kernel_size=4, stride=2, padding=1)
+        # b, 128, 20, 30
+        self.uconv5 = nn.Conv2d(128, 128, kernel_size=15, padding=7)
+        self.ubnorm3 = nn.BatchNorm2d(128)
+        self.upsamp1 = nn.ConvTranspose2d(128,128, kernel_size=4, stride=2, padding=1)
         
-        # b, 512, 40, 60
-        self.uconv6 = nn.Conv2d(512,256, kernel_size=9, padding= 4)
-        self.upsamp2 = nn.ConvTranspose2d(256,256, kernel_size=4, stride=2, padding=1)
+        # b, 128, 40, 60
+        self.uconv6 = nn.Conv2d(128,128, kernel_size=9, padding= 4)
+        self.upsamp2 = nn.ConvTranspose2d(128,128, kernel_size=4, stride=2, padding=1)
         
-        # b, 256, 80, 120
-        self.uconv7 = nn.Conv2d(256,128, kernel_size=5, padding = 2)
+        # b, 128, 80, 120
+        self.uconv7 = nn.Conv2d(128,128, kernel_size=5, padding = 2)
         self.upsamp3 = nn.ConvTranspose2d(128,64, kernel_size=4, stride=2, padding=1)
         self.ubnorm4 = nn.BatchNorm2d(64)
         # b, 64, 160, 240
@@ -150,9 +153,8 @@ class FCN(nn.Module):
         
     def forward(self, x):
         
-        
-        x_u = x.clone()
-        print(f'x: {x.shape}, x_u: {x_u.shape}')
+        x_u = x.clone().to(device)
+#         print(f'layer 1 inputs: x: {x.shape}, x_u: {x_u.shape}')
         
         # LAYER 1
         # x: batch, 3, 160, 240
@@ -168,7 +170,7 @@ class FCN(nn.Module):
         # LAYER 2
         # x: batch, 64, 160, 240
         # x_u: batch, 64, 80, 120
-        print(f'x: {x.shape}, x_u: {x_u.shape}')
+#         print(f'layer 2 inputs: x: {x.shape}, x_u: {x_u.shape}')
         x_u_upsampled = self.bc_u1_c2(x_u)
         x = torch.cat([x,x_u_upsampled], axis = 1)
         x = self.conv2(x)
@@ -186,7 +188,7 @@ class FCN(nn.Module):
         # LAYER 3
         # x: batch, 128, 160, 240
         # x_u: batch, 128, 40, 60
-        print(f'x: {x.shape}, x_u: {x_u.shape}')
+#         print(f'layer 3 inputs: x: {x.shape}, x_u: {x_u.shape}')
         x_u_upsampled = self.bc_u2_c3(x_u)
         x = torch.cat([x,x_u_upsampled], axis = 1)
         x = self.conv3(x)
@@ -200,9 +202,9 @@ class FCN(nn.Module):
         
 
         # LAYER 4
-        # x: batch, 256, 160, 240
-        # x_u: batch, 256, 20, 30
-        print(f'x: {x.shape}, x_u: {x_u.shape}')
+        # x: batch, 128, 160, 240
+        # x_u: batch, 128, 20, 30
+#         print(f'layer 4 inputs: x: {x.shape}, x_u: {x_u.shape}')
         x_u_upsampled = self.bc_u3_c4(x_u)
 #         print(x_u_upsampled.shape)
         x = torch.cat([x,x_u_upsampled], axis = 1)
@@ -218,9 +220,9 @@ class FCN(nn.Module):
         
 
         # LAYER 5
-        # x: batch, 512, 160, 240
-        # x_u: batch, 512, 20, 30
-        print(f'x: {x.shape}, x_u: {x_u.shape}')
+        # x: batch, 128, 160, 240
+        # x_u: batch, 128, 20, 30
+#         print(f'layer 5 inputs: x: {x.shape}, x_u: {x_u.shape}')
         x_u_upsampled = self.bc_u4_c5(x_u)
         x = torch.cat([x,x_u_upsampled], axis = 1)
         x = self.conv5(x)
@@ -237,9 +239,9 @@ class FCN(nn.Module):
         
 
         # LAYER 6
-        # x: batch, 256, 160, 240
-        # x_u: batch, 256, 40, 60
-        print(f'x: {x.shape}, x_u: {x_u.shape}')
+        # x: batch, 128, 160, 240
+        # x_u: batch, 128, 40, 60
+#         print(f'layer 6 inputs: x: {x.shape}, x_u: {x_u.shape}')
         x_u_upsampled = self.bc_u5_c6(x_u)
         x = torch.cat([x,x_u_upsampled], axis = 1)
         x = self.conv6(x)
@@ -255,7 +257,7 @@ class FCN(nn.Module):
         # LAYER 7
         # x: batch, 128, 160, 240
         # x_u: batch, 128, 80, 120
-        print(f'x: {x.shape}, x_u: {x_u.shape}')
+#         print(f'layer 7 inputs: x: {x.shape}, x_u: {x_u.shape}')
         x_u_upsampled = self.bc_u6_c7(x_u)
         x = torch.cat([x,x_u_upsampled], axis = 1)
         x = self.conv7(x)
@@ -272,16 +274,15 @@ class FCN(nn.Module):
         
         # LAYER 8 : Final
         # x: batch, 64, 160, 240
-        # x_u: batch, 64, 160, 240
-        print(f'x: {x.shape}, x_u: {x_u.shape}')
-        x_u_upsampled = self.bc_u6_c7(x_u)
-        x = torch.cat([x,x_u_upsampled], axis = 1)
+        # x_u: batch, 64, 80, 120
+#         print(f'layer 8 inputs: x: {x.shape}, x_u: {x_u.shape}')
+#         x_u_upsampled = self.bc_u6_c7(x_u)
+        x = torch.cat([x,x_u], axis = 1)
         x = self.conv8(x)
-        print('Final:',x.shape)
+#         print('Final:',x.shape)
         
         # x: batch, 49, 160, 240
-        return x # F.softmax(x, dim=1)
-
+        return x
 
 # Hyperparameters
 num_input_channels = 3
@@ -291,7 +292,7 @@ learning_rate = 0.001
 num_epochs = 10
 
 # Instantiate the model and set up the optimizer and loss function
-model = FCN(num_input_channels, num_classes).cuda()
+model = FCN(num_input_channels, num_classes).to(device)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = nn.CrossEntropyLoss()
 
@@ -306,7 +307,7 @@ train_loss = []
 for epoch in range(num_epochs):
     total_loss = 0
     for images, masks in tqdm(train_loader):
-        images, masks = images.cuda(), masks.cuda()
+        images, masks = images.to(device), masks.to(device)
         optimizer.zero_grad()
         outputs = model(images)
 #         masks = masks.argmax(dim=1)
