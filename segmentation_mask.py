@@ -12,11 +12,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import sys
 
-try:
-    device = torch.device('cuda')
-    torch.zeros(10).to(device)
-except:
-    device = torch.device('cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 
 class CustomDataset(Dataset):
@@ -41,8 +37,8 @@ class CustomDataset(Dataset):
 net_id = sys.argv[1]
 # net_id = 'ar7964'
 
-all_sequences = []
-all_sequence_masks = []
+# all_sequences = []
+# all_sequence_masks = []
 
 num_videos = 1000
 num_frames_per_video = 22
@@ -297,10 +293,6 @@ num_epochs = 10
 
 # Instantiate the model and set up the optimizer and loss function
 model = FCN(num_classes).to(device)
-try:
-    model.load_state_dict(torch.load('fcn_model.pth'))
-except:
-    continue
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = nn.CrossEntropyLoss()
 
