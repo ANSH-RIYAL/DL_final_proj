@@ -12,7 +12,11 @@ from torch.utils.data import Dataset, DataLoader
 
 import sys
 
-device = torch.device('cuda' if torch.backends.cuda.is_available() else 'cpu')
+try:
+    device = torch.device('cuda')
+    torch.zeros(10).to(device)
+except:
+    device = torch.device('cpu')
 print(device)
 
 class CustomDataset(Dataset):
@@ -292,7 +296,7 @@ learning_rate = 0.001
 num_epochs = 10
 
 # Instantiate the model and set up the optimizer and loss function
-model = FCN(num_input_channels, num_classes).to(device)
+model = FCN(num_classes).to(device)
 try:
     model.load_state_dict(torch.load('fcn_model.pth'))
 except:
@@ -306,6 +310,11 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 print('Dataset created, starting training')
 
+try:
+    model.load_state_dict(torch.load('fcn_model.pth'))
+except:
+    print('Could not find saved weights, beginning training from scratch')
+    
 train_loss = []
 # Training loop
 for epoch in range(num_epochs):
