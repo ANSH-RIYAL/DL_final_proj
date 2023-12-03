@@ -26,10 +26,10 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         global net_id
         i,j = self.frames[idx]
-        file_path = f"./../../../scratch/{net_id}/dataset_videos/dataset/train/video_{i}/image_{j}.png"
+        file_path = f"./../dataset/train/video_{i}/image_{j}.png"
         frame = torch.tensor(plt.imread(file_path)).permute(2, 0, 1)
 
-        file_path = f"./../../../scratch/{net_id}/dataset_videos/dataset/train/video_{i}/mask.npy"
+        file_path = f"./../dataset_videos/dataset/train/video_{i}/mask.npy"
         mask = np.load(file_path)[j]
         return frame, mask
 

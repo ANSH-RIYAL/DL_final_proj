@@ -34,7 +34,7 @@ class CreateDatasetCustom(Dataset):
             mode = 'val'
         else:
             mode = 'unlabeled'
-        filepath = f'./../../../scratch/{net_id}/dataset_videos/dataset/{mode}/video_{i}/'
+        filepath = f'./../dataset/{mode}/video_{i}/'
         # obtain x values.
         for j in range(num_hidden_frames):
             x.append(torch.tensor(plt.imread(filepath + f'image_{j}.png')).permute(2, 0, 1))
@@ -248,7 +248,7 @@ if os.path.isfile(best_model_path):
     model.load_state_dict(torch.load(best_model_path))
 
 num_epochs = 10
-lr = 0.0003
+lr = 0.00003
 criterion = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr)
 scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=lr, steps_per_epoch=len(train_loader),
