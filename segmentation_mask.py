@@ -24,7 +24,7 @@ class CustomDataset(Dataset):
         return len(self.frames)
 
     def __getitem__(self, idx):
-        global net_id
+#         global net_id
         i,j = self.frames[idx]
         file_path = f"./../dataset/train/video_{i}/image_{j}.png"
         frame = torch.tensor(plt.imread(file_path)).permute(2, 0, 1)
@@ -34,7 +34,7 @@ class CustomDataset(Dataset):
         return frame, mask
 
 
-net_id = sys.argv[1]
+# net_id = sys.argv[1]
 # net_id = 'ar7964'
 
 # all_sequences = []

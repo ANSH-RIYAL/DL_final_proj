@@ -24,7 +24,7 @@ class CreateDatasetCustom(Dataset):
         self.evaluation_mode = evaluation_mode
 
     def __getitem__(self, idx):
-        global net_id
+#         global net_id
         num_hidden_frames = 11
         num_total_frames = 22
         x = []
@@ -227,7 +227,7 @@ class DLModelVideoPrediction(nn.Module):
         return Y
 
 
-net_id = sys.argv[1]
+# net_id = sys.argv[1]
 
 batch_size = 8
 num_videos = 13000
