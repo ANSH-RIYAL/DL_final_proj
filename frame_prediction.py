@@ -19,7 +19,7 @@ class CreateDatasetCustom(Dataset):
         if evaluation_mode:
             start_num = 1000
         else:
-            start_num = 10000
+            start_num = 2000
         self.vid_indexes = torch.tensor([i for i in range(start_num, num_of_vids + start_num)])
         self.evaluation_mode = evaluation_mode
 
