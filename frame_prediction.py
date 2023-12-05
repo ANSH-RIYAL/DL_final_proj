@@ -273,6 +273,7 @@ for epoch in range(num_epochs):
         scheduler.step()
 
     train_loss = np.average(train_loss)
+    print(f"Average train loss {train_loss}")
     train_losses.append(train_loss)
     torch.save(model.state_dict(), './checkpoint_frame_prediction.pth')
 
@@ -281,7 +282,7 @@ for epoch in range(num_epochs):
     val_pbar = tqdm(val_loader)
 
     with torch.no_grad():
-        if epoch % 3 == 0:
+        if epoch % 2 == 0:
             for batch_x, batch_y in val_pbar:
                 batch_x, batch_y = batch_x.to(device), batch_y.to(device)
                 pred_y = model(batch_x)
@@ -290,4 +291,5 @@ for epoch in range(num_epochs):
                 val_pbar.set_description('val loss: {:.4f}'.format(loss.item()))
                 torch.cuda.empty_cache()
             val_loss = np.average(val_loss)
+            print(f'Average val loss {val_loss}')
             val_losses.append(val_loss)
