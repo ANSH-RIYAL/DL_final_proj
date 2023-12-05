@@ -246,10 +246,10 @@ if os.path.isfile(best_model_path):
     model.load_state_dict(torch.load(best_model_path))
 
 num_epochs = 10
-lr = 0.0003
+lr = 0.001
 criterion = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr)
-scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=lr, steps_per_epoch=len(train_loader),
+scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.0001, steps_per_epoch=len(train_loader),
                                                 epochs=num_epochs)
 
 train_losses = []
@@ -259,10 +259,8 @@ for epoch in range(num_epochs):
     train_loss = []
     model.train()
     train_pbar = tqdm(train_loader)
-    count = 0
 
     for batch_x, batch_y in train_pbar:
-        # print(count)
         optimizer.zero_grad()
         batch_x, batch_y = batch_x.to(device), batch_y.to(device)
         pred_y = model(batch_x)
@@ -273,7 +271,6 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
         scheduler.step()
-        count = count + 1
 
     train_loss = np.average(train_loss)
     train_losses.append(train_loss)
@@ -282,7 +279,6 @@ for epoch in range(num_epochs):
     val_loss = []
     model.eval()
     val_pbar = tqdm(val_loader)
-    count = 0
 
     with torch.no_grad():
         if epoch % 3 == 0:
