@@ -62,16 +62,26 @@ class CustomDataset(Dataset):
 
 
 def load_weights(model):
+    best_model_path = './checkpoints/frame_prediction.pth'
+    if os.path.isfile(best_model_path):
+        print('frame prediction weights found')
+        model.module.frame_prediction_model.load_state_dict(torch.load(best_model_path))
+
+    best_model_path = './checkpoints/image_segmentation.pth'
+    if os.path.isfile(best_model_path):
+        print('image segmentation weights found')
+        model.module.image_segmentation_model.load_state_dict(torch.load(best_model_path))
+
     best_model_path = './checkpoints/combined_model.pth'
     if os.path.isfile(best_model_path):
         print('combined model weights found')
-        model.load_state_dict(torch.load(best_model_path, map_location=torch.device(device)), strict=False)
+        model.load_state_dict(torch.load(best_model_path))
 
 
 def save_weights(model):
     torch.save(model.module.frame_prediction_model.state_dict(), './checkpoints/frame_prediction.pth')
     torch.save(model.module.image_segmentation_model.state_dict(), './checkpoints/image_segmentation.pth')
-    torch.save(model.state_dict(), './checkpoints/combined_model.pth')
+    # torch.save(model.state_dict(), './checkpoints/combined_model.pth')
     print('model weights saved successfully')
 
 
@@ -107,7 +117,7 @@ val_data = CustomDataset(num_val_videos, evaluation_mode=True)
 val_loader = DataLoader(val_data, batch_size=batch_size)
 
 # Hyperparameters:
-num_epochs = 20
+num_epochs = 1
 lr = 0.0001
 model = combined_model(device)
 model = nn.DataParallel(model)
