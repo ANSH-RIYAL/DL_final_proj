@@ -114,6 +114,7 @@ class combined_model(nn.Module):
 num_epochs = 10
 lr = 0.0001
 model = combined_model(device)
+model = DataParallel(model)
 load_weights(model)
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr)
