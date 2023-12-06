@@ -11,6 +11,12 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(device)
+torch.cuda.empty_cache()
+
 # Data Loader.
 class CustomDataset(Dataset):
     def __init__(self, num_of_vids=1000, evaluation_mode=False):
@@ -111,8 +117,6 @@ val_data = CustomDataset(num_val_videos, evaluation_mode=True)
 # load the data.
 val_loader = DataLoader(val_data, batch_size=batch_size)
 
-gpu_name = 'cuda'
-device = torch.device(gpu_name if torch.cuda.is_available() else 'cpu')
 
 # Hyperparameters:
 num_epochs = 10
