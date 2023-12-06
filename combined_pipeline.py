@@ -34,11 +34,11 @@ class CustomDataset(Dataset):
         x = []
         i = self.vid_indexes[idx]
         
-        # Isha
-        base_dir = './../Dataset_Student/'
+#         # Isha
+#         base_dir = './../Dataset_Student/'
         
-#         # Ansh
-#         base_dir = './../../../scratch/dataset_videos/dataset/'
+        # Ansh
+        base_dir = './../../../scratch/ar7964/dataset_videos/dataset/'
         
         filepath = f'{base_dir}{self.mode}/video_{i}/'
         # obtain x values.
@@ -55,7 +55,7 @@ class CustomDataset(Dataset):
     
     
 # Dataloader
-batch_size = 16
+batch_size = 8
 
 # Create Train DataLoader
 num_videos = 1000
