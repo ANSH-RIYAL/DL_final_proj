@@ -54,38 +54,20 @@ class CustomDataset(Dataset):
         return x, y
     
     
-# Dataloader
-batch_size = 8
-
-# Create Train DataLoader
-num_videos = 1000
-train_data = CustomDataset(num_videos)
-# load the data.
-train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
-
-# # Create Val DataLoader
-# num_val_videos = 1000
-# val_data = CustomDataset(num_val_videos, evaluation_mode = True)
-# # load the data.
-# val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
-
-gpu_name = 'cuda'
-device = torch.device(gpu_name if torch.cuda.is_available() else 'cpu')
-
 def load_weights(model):
     best_model_path = './checkpoints/frame_prediction.pth'  # load saved model to restart from previous best model
     if os.path.isfile(best_model_path):
         print('frame prediction model weights found')
-        model.frame_prediction_model.load_state_dict(torch.load(best_model_path))
+        model.module.frame_prediction_model.load_state_dict(torch.load(best_model_path))
 
     best_model_path = './checkpoints/image_segmentation.pth'  # load saved model to restart from previous best model
     if os.path.isfile(best_model_path):
         print('image segmentation model weights found')
-        model.image_segmentation_model.load_state_dict(torch.load(best_model_path))
+        model.module.image_segmentation_model.load_state_dict(torch.load(best_model_path))
 
 def save_weights(model):
-    torch.save(model.frame_prediction_model.state_dict(), './checkpoints/frame_prediction.pth')
-    torch.save(model.image_segmentation_model.state_dict(), './checkpoints/image_segmentation.pth')
+    torch.save(model.module.frame_prediction_model.state_dict(), './checkpoints/frame_prediction.pth')
+    torch.save(model.module.image_segmentation_model.state_dict(), './checkpoints/image_segmentation.pth')
 #     torch.save(model.state_dict(), './checkpoints/combined_model.pth')
     print('model weights saved successfully')
 
@@ -94,11 +76,11 @@ class combined_model(nn.Module):
     def __init__(self, device):
         super(combined_model, self).__init__()
         self.frame_prediction_model = DLModelVideoPrediction((11, 3, 160, 240), 64, 512, groups=4)
-        self.frame_prediction_model = nn.DataParallel(self.frame_prediction_model)
+#         self.frame_prediction_model = nn.DataParallel(self.frame_prediction_model)
         self.frame_prediction_model = self.frame_prediction_model.to(device)
 
         self.image_segmentation_model = unet_model()
-        self.image_segmentation_model = nn.DataParallel(self.image_segmentation_model)
+#         self.image_segmentation_model = nn.DataParallel(self.image_segmentation_model)
         self.image_segmentation_model = self.image_segmentation_model.to(device)        
         
     def forward(self,x):
@@ -110,11 +92,28 @@ class combined_model(nn.Module):
 #         print(x.shape)
         return x
 
+# Create Train DataLoader
+batch_size = 8
+num_videos = 1000
+train_data = CustomDataset(num_videos)
+# load the data.
+train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+
+# Create Val DataLoader
+batch_size = 4
+num_val_videos = 2000
+val_data = CustomDataset(num_val_videos, evaluation_mode = True)
+# load the data.
+val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
+
+gpu_name = 'cuda'
+device = torch.device(gpu_name if torch.cuda.is_available() else 'cpu')
+
 # Hyperparameters:
 num_epochs = 10
 lr = 0.0001
 model = combined_model(device)
-model = DataParallel(model)
+model = nn.DataParallel(model)
 load_weights(model)
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr)
@@ -147,16 +146,22 @@ for epoch in range(num_epochs):
     save_weights(model)
 
     
-#     val_loss = []
-#     model.eval()
-#     val_pbar = tqdm(val_loader)
+    val_loss = []
+    model.eval()
+    val_pbar = tqdm(val_loader)
 
-#     with torch.no_grad():
-#         if epoch % 2 == 0:
-#             for batch_x in val_pbar:
-#                 batch_x = batch_x.to(device)
-#                 pred_y = model(batch_x).float()
-#                 preds_per_epoch.append(pred_y)
+    with torch.no_grad():
+        if epoch % 2 == 0:
+            preds = []
+            for batch_x in val_pbar:
+                batch_x = batch_x.to(device)
+                pred_y = model(batch_x)#.float()
+                preds.append(pred_y)
+            preds = torch.cat([i for i in preds],0)
+            preds_per_epoch.append(preds)
                 
-# latest_predictions = preds_per_epoch[-1]
-# torch.save(latest_predictions, 'The_Big_Epochalypse_submission.pt')
+preds_per_epoch = torch.stack([i for i in preds_per_epoch],0)
+latest_predictions = preds_per_epoch[-1]
+latest_predictions = np.argmax(latest_predictions,1) 
+print(latest_predictions.shape)
+torch.save(latest_predictions, 'The_Big_Epochalypse_submission.pt')
