@@ -356,7 +356,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import sys
 
-# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
@@ -364,7 +364,7 @@ print(device)
 # device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 # print(device)
 
-# torch.cuda.empty_cache()
+torch.cuda.empty_cache()
 
 class CustomDataset(Dataset):
     def __init__(self, all_frames):
@@ -375,12 +375,11 @@ class CustomDataset(Dataset):
         return len(self.frames)
 
     def __getitem__(self, idx):
-#         global net_id
         i,j = self.frames[idx]
-        file_path = f"./../Dataset_Student/train/video_{i}/image_{j}.png"
+        file_path = f"./../../dataset/train/video_{i}/image_{j}.png"
         frame = torch.tensor(plt.imread(file_path)).permute(2, 0, 1)
 
-        file_path = f"./../Dataset_Student/train/video_{i}/mask.npy"
+        file_path = f"./../../dataset/train/video_{i}/mask.npy"
         mask = np.load(file_path)[j]
         return frame, mask
 
@@ -521,7 +520,7 @@ num_videos = 1000
 
 num_frames_per_video = 22
 
-all_frames = [[[i,j] for j in range(num_frames_per_video)] for i in range(num_videos)]
+all_frames = [[[i, j] for j in range(num_frames_per_video)] for i in range(num_videos)]
 t = []
 for i in all_frames:
     t += i
@@ -534,7 +533,7 @@ train_data = CustomDataset(all_frames)
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
 # Hyperparameters:
-num_epochs = 10
+num_epochs = 20
 lr = 0.00001
 model = UNet(bilinear=True)
 model = model.to(device)
