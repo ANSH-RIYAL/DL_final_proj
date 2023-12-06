@@ -17,6 +17,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 torch.cuda.empty_cache()
 
+
 # Data Loader.
 class CustomDataset(Dataset):
     def __init__(self, num_of_vids=1000, evaluation_mode=False):
@@ -32,39 +33,40 @@ class CustomDataset(Dataset):
 
     def __len__(self):
         return self.num_of_vids
-    
+
     def __getitem__(self, idx):
         num_hidden_frames = 11
         num_total_frames = 22
         x = []
         i = self.vid_indexes[idx]
-        
-#         # Isha
-#         base_dir = './../Dataset_Student/'
+
+        #         # Isha
+        #         base_dir = './../Dataset_Student/'
         # Shreemayi
         base_dir = './../../dataset/'
         # # Ansh
         # base_dir = './../../../scratch/ar7964/dataset_videos/dataset/'
-        
+
         filepath = f'{base_dir}{self.mode}/video_{i}/'
         # obtain x values.
         for j in range(num_hidden_frames):
             x.append(torch.tensor(plt.imread(filepath + f'image_{j}.png')).permute(2, 0, 1))
         x = torch.stack(x, 0)
-        
+
         if self.evaluation_mode:
             return x
-        
+
         file_path = f"{base_dir}{self.mode}/video_{i}/mask.npy"
         y = np.load(file_path)[21]  # last frame.
         return x, y
-    
-    
+
+
 def load_weights(model):
     best_model_path = './checkpoints/combined_model.pth'
     if os.path.isfile(best_model_path):
         print('combined model weights found')
         model.load_state_dict(torch.load(best_model_path, map_location=torch.device(device)), strict=False)
+
 
 def save_weights(model):
     torch.save(model.module.frame_prediction_model.state_dict(), './checkpoints/frame_prediction.pth')
@@ -78,14 +80,14 @@ class combined_model(nn.Module):
         super(combined_model, self).__init__()
         self.frame_prediction_model = DLModelVideoPrediction((11, 3, 160, 240), 64, 512, groups=4)
         self.image_segmentation_model = unet_model()
-        
-    def forward(self,x):
+
+    def forward(self, x):
         x = self.frame_prediction_model(x)
-#         print(x.shape)
-        x = x[:,-1]
-#         print(x.shape)
+        #         print(x.shape)
+        x = x[:, -1]
+        #         print(x.shape)
         x = self.image_segmentation_model(x)
-#         print(x.shape)
+        #         print(x.shape)
         return x
 
 
@@ -102,7 +104,6 @@ num_val_videos = 2000
 val_data = CustomDataset(num_val_videos, evaluation_mode=True)
 # load the data.
 val_loader = DataLoader(val_data, batch_size=batch_size)
-
 
 # Hyperparameters:
 num_epochs = 20
@@ -126,11 +127,11 @@ for epoch in range(num_epochs):
     for batch_x, batch_y in train_pbar:
         optimizer.zero_grad()
         batch_x, batch_y = batch_x.to(device), batch_y.to(device).long()
-        pred_y = model(batch_x) #.long()
+        pred_y = model(batch_x)  # .long()
         loss = criterion(pred_y, batch_y)
         train_loss.append(loss.item())
         train_pbar.set_description('train loss: {:.4f}'.format(loss.item()))
-#         print(loss)
+        #         print(loss)
         loss.backward()
         optimizer.step()
         scheduler.step()
@@ -140,7 +141,6 @@ for epoch in range(num_epochs):
     train_losses.append(train_loss)
     save_weights(model)
 
-    
     val_loss = []
     model.eval()
     val_pbar = tqdm(val_loader)
@@ -151,13 +151,12 @@ for epoch in range(num_epochs):
             preds = []
             for batch_x in val_pbar:
                 batch_x = batch_x.to(device)
-                pred_y = model(batch_x)#.float()
+                pred_y = model(batch_x)  # .float()
                 preds.append(pred_y)
-            preds = torch.cat([i for i in preds],0)
+            preds = torch.cat([i for i in preds], 0)
             preds_per_epoch.append(preds)
-                
-    preds_per_epoch = torch.stack([i for i in preds_per_epoch],0)
+
+    preds_per_epoch = torch.stack([i for i in preds_per_epoch], 0)
     latest_predictions = preds_per_epoch[-1]
-    latest_predictions = np.argmax(latest_predictions,1)
+    latest_predictions = np.argmax(latest_predictions, 1)
     print(latest_predictions.shape)
-    torch.save(latest_predictions, 'leaderboard_2_team_13.pt')
