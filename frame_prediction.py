@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 
 import sys
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
@@ -226,6 +227,16 @@ class DLModelVideoPrediction(nn.Module):
         Y = Y.reshape(B, T, C, H, W)
         return Y
 
+class PerceptualLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.ssim = SSIM()
+
+    def forward(self, pred, gt):
+        mse_loss = nn.MSELoss()(pred, gt)
+        perceptual_loss = self.ssim(pred.view(-1, 3, 160, 240), gt.view(-1, 3, 160, 240))
+        return mse_loss + perceptual_loss
+
 
 batch_size = 8
 num_videos = 13000
@@ -245,7 +256,7 @@ best_model_path = './checkpoint_frame_prediction.pth'  # load saved model to res
 if os.path.isfile(best_model_path):
     model.load_state_dict(torch.load(best_model_path))
 
-num_epochs = 10
+num_epochs = 5
 lr = 0.001
 criterion = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr)
