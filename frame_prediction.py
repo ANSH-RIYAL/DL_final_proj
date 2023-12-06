@@ -227,7 +227,7 @@ class DLModelVideoPrediction(nn.Module):
         return Y
 
 
-batch_size = 16
+batch_size = 8
 num_videos = 13000
 num_val_videos = 1000
 
