@@ -64,14 +64,17 @@ def load_weights(model):
     best_model_path = './checkpoints/frame_prediction.pth'
     if os.path.isfile(best_model_path):
         print('frame prediction model weights found')
+        model.module.frame_prediction_model = nn.DataParallel(model.module.frame_prediction_model)
+
         model.module.frame_prediction_model.load_state_dict(torch.load(best_model_path))
 
     best_model_path = './checkpoints/image_segmentation.pth'
     if os.path.isfile(best_model_path):
         print('image segmentation model weights found')
+        model.module.image_segmentation_model = nn.DataParallel(model.module.image_segmentation_model)
         model.module.image_segmentation_model.load_state_dict(torch.load(best_model_path))
 
-    best_model_path = './checkpoints/combined.pth'
+    best_model_path = './checkpoints/combined_model.pth'
     if os.path.isfile(best_model_path):
         print('combined model weights found')
         model.load_state_dict(torch.load(best_model_path))
@@ -104,14 +107,14 @@ class combined_model(nn.Module):
         return x
 
 # Create Train DataLoader
-batch_size = 8
+batch_size = 4
 num_videos = 1000
 train_data = CustomDataset(num_videos)
 # load the data.
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
 # Create Val DataLoader
-batch_size = 8
+batch_size = 4
 num_val_videos = 2000
 val_data = CustomDataset(num_val_videos, evaluation_mode=True)
 # load the data.
@@ -119,7 +122,7 @@ val_loader = DataLoader(val_data, batch_size=batch_size)
 
 
 # Hyperparameters:
-num_epochs = 10
+num_epochs = 20
 lr = 0.0001
 model = combined_model(device)
 model = nn.DataParallel(model)
@@ -159,7 +162,8 @@ for epoch in range(num_epochs):
     val_pbar = tqdm(val_loader)
 
     with torch.no_grad():
-        if epoch % 2 == 0:
+        torch.cuda.empty_cache()
+        if epoch % 5 == 0:
             preds = []
             for batch_x in val_pbar:
                 batch_x = batch_x.to(device)
