@@ -72,6 +72,24 @@ train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 gpu_name = 'cuda'
 device = torch.device(gpu_name if torch.cuda.is_available() else 'cpu')
 
+def load_weights(model):
+    best_model_path = './checkpoints/frame_prediction.pth'  # load saved model to restart from previous best model
+    if os.path.isfile(best_model_path):
+        print('frame prediction model weights found')
+        model.frame_prediction_model.load_state_dict(torch.load(best_model_path))
+
+    best_model_path = './checkpoints/image_segmentation.pth'  # load saved model to restart from previous best model
+    if os.path.isfile(best_model_path):
+        print('image segmentation model weights found')
+        model.image_segmentation_model.load_state_dict(torch.load(best_model_path))
+
+def save_weights(model):
+    torch.save(model.frame_prediction_model.state_dict(), './checkpoints/frame_prediction.pth')
+    torch.save(model.frame_prediction_model.state_dict(), './checkpoints/image_segmentation.pth')
+#     torch.save(model.state_dict(), './checkpoints/combined_model.pth')
+    print('model weights saved successfully')
+
+
 class combined_model(nn.Module):
     def __init__(self, device):
         super(combined_model, self).__init__()
@@ -81,24 +99,7 @@ class combined_model(nn.Module):
 
         self.image_segmentation_model = unet_model()
         self.image_segmentation_model = nn.DataParallel(self.image_segmentation_model)
-        self.image_segmentation_model = self.image_segmentation_model.to(device)
-        
-    def load_weights(self):
-        best_model_path = './checkpoints/frame_prediction.pth'  # load saved model to restart from previous best model
-        if os.path.isfile(best_model_path):
-            print('frame prediction model weights found')
-            self.frame_prediction_model.load_state_dict(torch.load(best_model_path))
-
-        best_model_path = './checkpoints/image_segmentation.pth'  # load saved model to restart from previous best model
-        if os.path.isfile(best_model_path):
-            print('image segmentation model weights found')
-            self.image_segmentation_model.load_state_dict(torch.load(best_model_path))
-            
-    def save_weights(self):
-        torch.save(self.frame_prediction_model.state_dict(), './checkpoints/frame_prediction.pth')
-        torch.save(self.frame_prediction_model.state_dict(), './checkpoints/image_segmentation.pth')
-        print('model weights saved successfully')
-        
+        self.image_segmentation_model = self.image_segmentation_model.to(device)        
         
     def forward(self,x):
         x = self.frame_prediction_model(x)
@@ -113,7 +114,7 @@ class combined_model(nn.Module):
 num_epochs = 10
 lr = 0.0001
 model = combined_model(device)
-model.load_weights()
+load_weights(model)
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr)
 scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.001, steps_per_epoch=len(train_loader),
@@ -142,7 +143,7 @@ for epoch in range(num_epochs):
     print(f"Average train loss {train_loss}")
     train_losses.append(train_loss)
 #     torch.save(model.state_dict(), './checkpoint_frame_prediction.pth')
-    model.save_weights()
+    save_weights(model)
 
     
 #     val_loss = []
