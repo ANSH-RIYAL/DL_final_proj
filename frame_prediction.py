@@ -257,10 +257,10 @@ if os.path.isfile(best_model_path):
     model.load_state_dict(torch.load(best_model_path))
 
 num_epochs = 5
-lr = 0.001
+lr = 0.0001
 criterion = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr)
-scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.0001, steps_per_epoch=len(train_loader),
+scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.001, steps_per_epoch=len(train_loader),
                                                 epochs=num_epochs)
 
 train_losses = []
