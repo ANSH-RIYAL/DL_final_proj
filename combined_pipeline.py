@@ -61,23 +61,10 @@ class CustomDataset(Dataset):
     
     
 def load_weights(model):
-    best_model_path = './checkpoints/frame_prediction.pth'
-    if os.path.isfile(best_model_path):
-        print('frame prediction model weights found')
-        model.module.frame_prediction_model = nn.DataParallel(model.module.frame_prediction_model)
-
-        model.module.frame_prediction_model.load_state_dict(torch.load(best_model_path))
-
-    best_model_path = './checkpoints/image_segmentation.pth'
-    if os.path.isfile(best_model_path):
-        print('image segmentation model weights found')
-        model.module.image_segmentation_model = nn.DataParallel(model.module.image_segmentation_model)
-        model.module.image_segmentation_model.load_state_dict(torch.load(best_model_path))
-
     best_model_path = './checkpoints/combined_model.pth'
     if os.path.isfile(best_model_path):
         print('combined model weights found')
-        model.load_state_dict(torch.load(best_model_path))
+        model.load_state_dict(torch.load(best_model_path, map_location=torch.device(device)), strict=False)
 
 def save_weights(model):
     torch.save(model.module.frame_prediction_model.state_dict(), './checkpoints/frame_prediction.pth')
@@ -90,12 +77,7 @@ class combined_model(nn.Module):
     def __init__(self, device):
         super(combined_model, self).__init__()
         self.frame_prediction_model = DLModelVideoPrediction((11, 3, 160, 240), 64, 512, groups=4)
-#         self.frame_prediction_model = nn.DataParallel(self.frame_prediction_model)
-        self.frame_prediction_model = self.frame_prediction_model.to(device)
-
         self.image_segmentation_model = unet_model()
-#         self.image_segmentation_model = nn.DataParallel(self.image_segmentation_model)
-        self.image_segmentation_model = self.image_segmentation_model.to(device)        
         
     def forward(self,x):
         x = self.frame_prediction_model(x)
@@ -105,6 +87,7 @@ class combined_model(nn.Module):
         x = self.image_segmentation_model(x)
 #         print(x.shape)
         return x
+
 
 # Create Train DataLoader
 batch_size = 4
@@ -135,6 +118,7 @@ scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.001, steps_p
 train_losses = []
 preds_per_epoch = []
 for epoch in range(num_epochs):
+    torch.cuda.empty_cache()
     train_loss = []
     model.train()
     train_pbar = tqdm(train_loader)
