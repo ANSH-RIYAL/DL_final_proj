@@ -79,7 +79,8 @@ class combined_model(nn.Module):
     def __init__(self, device):
         super(combined_model, self).__init__()
         self.frame_prediction_model = DLModelVideoPrediction((11, 3, 160, 240), 64, 512, groups=4)
-        self.image_segmentation_model = unet_model()
+#         self.image_segmentation_model = unet_model()
+        self.image_segmentation_model = UNet()
 
     def forward(self, x):
         x = self.frame_prediction_model(x)
