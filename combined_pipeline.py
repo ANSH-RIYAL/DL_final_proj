@@ -151,23 +151,3 @@ for epoch in range(num_epochs):
     print(f"Average train loss {train_loss}")
     train_losses.append(train_loss)
     save_weights(model)
-
-    val_loss = []
-    model.eval()
-    val_pbar = tqdm(val_loader)
-
-    with torch.no_grad():
-        torch.cuda.empty_cache()
-        if epoch % 5 == 0:
-            preds = []
-            for batch_x in val_pbar:
-                batch_x = batch_x.to(device)
-                pred_y = model(batch_x)  # .float()
-                preds.append(pred_y)
-            preds = torch.cat([i for i in preds], 0)
-            preds_per_epoch.append(preds)
-
-    preds_per_epoch = torch.stack([i for i in preds_per_epoch], 0)
-    latest_predictions = preds_per_epoch[-1]
-    latest_predictions = np.argmax(latest_predictions, 1)
-    print(latest_predictions.shape)
