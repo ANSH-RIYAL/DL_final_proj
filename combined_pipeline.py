@@ -85,7 +85,7 @@ def load_weights(model):
 
 def save_weights(model):
     torch.save(model.frame_prediction_model.state_dict(), './checkpoints/frame_prediction.pth')
-    torch.save(model.frame_prediction_model.state_dict(), './checkpoints/image_segmentation.pth')
+    torch.save(model.image_segmentation_model.state_dict(), './checkpoints/image_segmentation.pth')
 #     torch.save(model.state_dict(), './checkpoints/combined_model.pth')
     print('model weights saved successfully')
 
