@@ -34,7 +34,11 @@ class CustomDataset(Dataset):
         x = []
         i = self.vid_indexes[idx]
         
+        # Isha
         base_dir = './../Dataset_Student/'
+        
+#         # Ansh
+#         base_dir = './../../../scratch/dataset_videos/dataset/'
         
         filepath = f'{base_dir}{self.mode}/video_{i}/'
         # obtain x values.
@@ -59,11 +63,11 @@ train_data = CustomDataset(num_videos)
 # load the data.
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
-# Create Val DataLoader
-num_val_videos = 1000
-val_data = CustomDataset(num_val_videos, evaluation_mode = True)
-# load the data.
-val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
+# # Create Val DataLoader
+# num_val_videos = 1000
+# val_data = CustomDataset(num_val_videos, evaluation_mode = True)
+# # load the data.
+# val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
 gpu_name = 'cuda'
 device = torch.device(gpu_name if torch.cuda.is_available() else 'cpu')
@@ -139,16 +143,18 @@ for epoch in range(num_epochs):
     train_losses.append(train_loss)
 #     torch.save(model.state_dict(), './checkpoint_frame_prediction.pth')
     model.save_weights()
-    val_loss = []
-    model.eval()
-    val_pbar = tqdm(val_loader)
 
-    with torch.no_grad():
-        if epoch % 2 == 0:
-            for batch_x in val_pbar:
-                batch_x = batch_x.to(device)
-                pred_y = model(batch_x).float()
-                preds_per_epoch.append(pred_y)
+    
+#     val_loss = []
+#     model.eval()
+#     val_pbar = tqdm(val_loader)
+
+#     with torch.no_grad():
+#         if epoch % 2 == 0:
+#             for batch_x in val_pbar:
+#                 batch_x = batch_x.to(device)
+#                 pred_y = model(batch_x).float()
+#                 preds_per_epoch.append(pred_y)
                 
-latest_predictions = preds_per_epoch[-1]
-torch.save(latest_predictions, 'The_Big_Epochalypse_submission.pt')
+# latest_predictions = preds_per_epoch[-1]
+# torch.save(latest_predictions, 'The_Big_Epochalypse_submission.pt')
