@@ -349,6 +349,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+from torchvision.transforms import GaussianBlur
+
 
 # from utils.dice_score import dice_loss
 
@@ -406,6 +408,27 @@ class DoubleConv(nn.Module):
 
     def forward(self, x):
         return self.double_conv(x)
+    
+    
+def get_blurry_images(x_batch, y_batch, noise_level = 0.05, kernel_size = 3, sigma = 0.1):
+    # Shape of x_batch is (batch_size, num_channels, height, width)
+    # Shape of x_augmented is (batch_size * 3, num_channels, height, width)
+    x_random_noise = x_batch.clone()
+    noise = torch.randn_like(x_random_noise) * noise_level
+    x_random_noise += noise
+    
+    x_gaussian_blurring = x_batch.clone()
+    blur_transform = GaussianBlur(kernel_size, sigma)
+    x_gaussian_blurring = blur_transform(x_gaussian_blurring)
+    
+    x_augmented = torch.cat([x_batch, x_random_noise, x_gaussian_blurring],0)
+    
+    y_augmented = torch.cat([y_batch, y_batch, y_batch],0)
+    
+#     print(x_augmented.shape, y_augmented.shape)
+
+    return x_augmented, y_augmented
+    
 
 
 class Down(nn.Module):
@@ -616,6 +639,7 @@ for epoch in range(num_epochs):
 
     for batch_x, batch_y in train_pbar:
         #         optimizer.zero_grad()
+        batch_x, batch_y = get_blurry_images(batch_x,batch_y)
         batch_x, batch_y = batch_x.to(device), batch_y.to(device).long()
         pred_y = model(batch_x)  # .long()
         loss = criterion(pred_y, batch_y)
