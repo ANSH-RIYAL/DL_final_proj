@@ -69,48 +69,48 @@
 # class FCN(nn.Module):
 #     def __init__(self, num_classes):
 #         super(FCN, self).__init__()
-        
+
 #         # Branch Connectors
 #         self.bc_u1_c2 = nn.ConvTranspose2d(64,64, kernel_size=4, stride=2, padding=1)
 #         self.bcnorm1 = nn.BatchNorm2d(64)
-        
+
 #         self.bc_u2_c3 = nn.ConvTranspose2d(128,128, kernel_size=4, stride=4, padding=0)
 #         self.bcnorm2 = nn.BatchNorm2d(128)
-        
+
 #         self.bc_u3_c4 = nn.ConvTranspose2d(128,128, kernel_size=8, stride=8, padding=0)
 #         self.bcnorm3 = nn.BatchNorm2d(128)
-        
+
 #         self.bc_u4_c5 = nn.ConvTranspose2d(128,128, kernel_size=8, stride=8, padding=0)
 #         self.bcnorm4 = nn.BatchNorm2d(128)
-        
+
 #         self.bc_u5_c6 = nn.ConvTranspose2d(128,128, kernel_size=4, stride=4, padding=0)
 #         self.bcnorm5 = nn.BatchNorm2d(128)
-        
+
 #         self.bc_u6_c7 = nn.ConvTranspose2d(128,128, kernel_size=4, stride=2, padding=1)
 #         self.bcnorm6 = nn.BatchNorm2d(128)
-        
-        
+
+
 #         # First branch of the network
 
 #         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, padding=1)
 
 #         self.conv2 = nn.Conv2d(64*2, 128, kernel_size=5, padding=2)
 #         self.bnorm1 = nn.BatchNorm2d(128)
-        
+
 #         self.conv3 = nn.Conv2d(128*2, 128, kernel_size=9, padding=4)
-        
+
 #         self.conv4 = nn.Conv2d(128*2, 128, kernel_size=15, padding=7)
 #         self.bnorm2 = nn.BatchNorm2d(128)
 
 #         self.conv5 = nn.Conv2d(128*2, 128, kernel_size=15, padding=7)
 #         self.bnorm3 = nn.BatchNorm2d(128)
-        
+
 #         self.conv6 = nn.Conv2d(128*2,128, kernel_size=9, padding=4)
-        
+
 #         self.conv7 = nn.Conv2d(128*2,64, kernel_size=5, padding=2)
 #         self.bnorm4 = nn.BatchNorm2d(64)
-                
-        
+
+
 #         # Second branch of the network
 #         # b, 3, 160, 240
 #         self.uconv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1)
@@ -119,11 +119,11 @@
 #         self.uconv2 = nn.Conv2d(64, 128, kernel_size=5, padding=2)
 #         self.ump1 = nn.MaxPool2d(kernel_size= 2)
 #         self.ubnorm1 = nn.BatchNorm2d(128)
-        
+
 #         # b, 128, 40, 60
 #         self.uconv3 = nn.Conv2d(128, 128, kernel_size=9, padding=4)
 #         self.ump2 = nn.MaxPool2d(kernel_size= 2)
-        
+
 #         # b, 128, 20, 30
 #         self.uconv4 = nn.Conv2d(128, 128, kernel_size=15, padding=7)
 #         self.ubnorm2 = nn.BatchNorm2d(128)
@@ -132,30 +132,30 @@
 #         self.uconv5 = nn.Conv2d(128, 128, kernel_size=15, padding=7)
 #         self.ubnorm3 = nn.BatchNorm2d(128)
 #         self.upsamp1 = nn.ConvTranspose2d(128,128, kernel_size=4, stride=2, padding=1)
-        
+
 #         # b, 128, 40, 60
 #         self.uconv6 = nn.Conv2d(128,128, kernel_size=9, padding= 4)
 #         self.upsamp2 = nn.ConvTranspose2d(128,128, kernel_size=4, stride=2, padding=1)
-        
+
 #         # b, 128, 80, 120
 #         self.uconv7 = nn.Conv2d(128,128, kernel_size=5, padding = 2)
 #         self.upsamp3 = nn.ConvTranspose2d(128,64, kernel_size=4, stride=2, padding=1)
 #         self.ubnorm4 = nn.BatchNorm2d(64)
 #         # b, 64, 160, 240
-        
-        
+
+
 #         # Final layer of the network
 #         # x: b, 64, 160, 240 and x_u: b, 64, 160, 240
 #         # Overall input shape for final layer: b, 128, 160, 240
 #         self.conv8 = nn.Conv2d(64*2, num_classes, kernel_size=3, padding = 1)
 
-        
-        
+
+
 #     def forward(self, x):
-        
+
 #         x_u = x.clone().to(device)
 # #         print(f'layer 1 inputs: x: {x.shape}, x_u: {x_u.shape}')
-        
+
 #         # LAYER 1
 #         # x: batch, 3, 160, 240
 #         # x_u: batch, 3, 160, 240
@@ -165,7 +165,7 @@
 #         x_u = self.uconv1(x_u)
 #         x_u = F.relu(x_u)
 # #         print('uconv 1:',x_u.shape)
-        
+
 
 #         # LAYER 2
 #         # x: batch, 64, 160, 240
@@ -176,14 +176,14 @@
 #         x = self.conv2(x)
 #         x = self.bnorm1(x)
 #         x = F.relu(x)
-        
+
 #         x_u = self.uconv2(x_u)
 #         x_u = self.ump1(x_u)
 #         x_u = self.ubnorm1(x_u)
 #         x_u = F.relu(x_u)
 # #         print('uconv 2:',x_u.shape)
-        
-        
+
+
 
 #         # LAYER 3
 #         # x: batch, 128, 160, 240
@@ -193,13 +193,13 @@
 #         x = torch.cat([x,x_u_upsampled], axis = 1)
 #         x = self.conv3(x)
 #         x = F.relu(x)
-        
+
 #         x_u = self.uconv3(x_u)
 #         x_u = self.ump1(x_u)
 #         x_u = F.relu(x_u)
 # #         print('uconv 3:',x_u.shape)
 
-        
+
 
 #         # LAYER 4
 #         # x: batch, 128, 160, 240
@@ -215,9 +215,9 @@
 #         x_u = self.uconv4(x_u)
 #         x_u = self.ubnorm2(x_u)
 #         x_u = F.relu(x_u)
-# #         print('uconv 4:',x_u.shape)   
+# #         print('uconv 4:',x_u.shape)
 
-        
+
 
 #         # LAYER 5
 #         # x: batch, 128, 160, 240
@@ -235,8 +235,8 @@
 #         x_u = self.upsamp1(x_u)
 #         x_u = F.relu(x_u)
 # #         print('uconv 5:',x_u.shape)
-        
-        
+
+
 
 #         # LAYER 6
 #         # x: batch, 128, 160, 240
@@ -252,7 +252,7 @@
 #         x_u = F.relu(x_u)
 # #         print('uconv 6:',x_u.shape)
 
-        
+
 
 #         # LAYER 7
 #         # x: batch, 128, 160, 240
@@ -271,7 +271,7 @@
 # #         print('uconv 7:',x_u.shape)
 
 
-        
+
 #         # LAYER 8 : Final
 #         # x: batch, 64, 160, 240
 #         # x_u: batch, 64, 80, 120
@@ -280,7 +280,7 @@
 #         x = torch.cat([x,x_u], axis = 1)
 #         x = self.conv8(x)
 # #         print('Final:',x.shape)
-        
+
 #         # x: batch, 49, 160, 240
 #         return x
 
@@ -306,7 +306,7 @@
 #     model.load_state_dict(torch.load('fcn_model.pth'))
 # except:
 #     print('Could not find saved weights, beginning training from scratch')
-    
+
 # train_loss = []
 # # Training loop
 # for epoch in range(num_epochs):
@@ -338,10 +338,6 @@
 # plt.savefig("epoch_loss.jpg")
 
 
-
-
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -354,9 +350,15 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
+# from utils.dice_score import dice_loss
+
 import sys
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
+
+# device = torch.device('cpu')
+# print(device)
+
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
@@ -369,20 +371,21 @@ torch.cuda.empty_cache()
 class CustomDataset(Dataset):
     def __init__(self, all_frames):
         self.frames = torch.tensor(all_frames)
-#         self.masks = all_masks.cuda()
+
+    #         self.masks = all_masks.cuda()
 
     def __len__(self):
         return len(self.frames)
 
     def __getitem__(self, idx):
-        i,j = self.frames[idx]
+        #         global net_id
+        i, j = self.frames[idx]
         file_path = f"./../../dataset/train/video_{i}/image_{j}.png"
         frame = torch.tensor(plt.imread(file_path)).permute(2, 0, 1)
 
         file_path = f"./../../dataset/train/video_{i}/mask.npy"
         mask = np.load(file_path)[j]
         return frame, mask
-
 
 
 class DoubleConv(nn.Module):
@@ -455,7 +458,8 @@ class OutConv(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
-    
+
+
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=49, bilinear=False):
         super(UNet, self).__init__()
@@ -501,6 +505,59 @@ class UNet(nn.Module):
         self.outc = torch.utils.checkpoint(self.outc)
 
 
+def dice_coeff(input: torch.Tensor, target: torch.Tensor, reduce_batch_first: bool = False, epsilon: float = 1e-6):
+    # Average of Dice coefficient for all batches, or for a single mask
+    assert input.size() == target.size()
+    assert input.dim() == 3 or not reduce_batch_first
+
+    sum_dim = (-1, -2) if input.dim() == 2 or not reduce_batch_first else (-1, -2, -3)
+
+    inter = 2 * (input * target).sum(dim=sum_dim)
+    sets_sum = input.sum(dim=sum_dim) + target.sum(dim=sum_dim)
+    sets_sum = torch.where(sets_sum == 0, inter, sets_sum)
+
+    dice = (inter + epsilon) / (sets_sum + epsilon)
+    return dice.mean()
+
+
+def multiclass_dice_coeff(input: torch.Tensor, target: torch.Tensor, reduce_batch_first: bool = False,
+                          epsilon: float = 1e-6):
+    # Average of Dice coefficient for all classes
+    return dice_coeff(input.flatten(0, 1), target.flatten(0, 1), reduce_batch_first, epsilon)
+
+
+def dice_loss(input: torch.Tensor, target: torch.Tensor, multiclass: bool = False):
+    # Dice loss (objective to minimize) between 0 and 1
+    fn = multiclass_dice_coeff if multiclass else dice_coeff
+    return 1 - fn(input, target, reduce_batch_first=True)
+
+
+def evaluate(net, dataloader, device, amp=True):
+    net.eval()
+    num_val_batches = 1  # len(dataloader)
+    dice_score = 0
+
+    # iterate over the validation set
+    with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
+        for batch in tqdm(dataloader, total=num_val_batches, desc='Evaluation round', unit='batch', leave=False):
+            #             print(batch)
+            image, mask_true = batch  # ['image'], batch['mask']
+
+            # move images and labels to correct device and type
+            image = image.to(device=device, dtype=torch.float32, memory_format=torch.channels_last)
+            mask_true = mask_true.to(device=device, dtype=torch.long)
+
+            # predict the mask
+            mask_pred = net(image)
+
+            mask_true = F.one_hot(mask_true, 49).permute(0, 3, 1, 2).float()
+            mask_pred = F.one_hot(mask_pred.argmax(dim=1), 49).permute(0, 3, 1, 2).float()
+            # compute the Dice score, ignoring background
+            dice_score += multiclass_dice_coeff(mask_pred[:, 1:], mask_true[:, 1:], reduce_batch_first=False)
+
+    net.train()
+    return dice_score / max(num_val_batches, 1)
+
 
 def load_weights(model):
     best_model_path = './checkpoints/image_segmentation.pth'
@@ -515,7 +572,7 @@ def save_weights(model):
 
 
 # Create Train DataLoader
-batch_size = 5
+batch_size = 8
 num_videos = 1000
 
 num_frames_per_video = 22
@@ -526,23 +583,28 @@ for i in all_frames:
     t += i
 all_frames = torch.tensor(t)
 
-# 1000 X 22
+# 22000 X 2
 
 train_data = CustomDataset(all_frames)
 # load the data.
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
 # Hyperparameters:
-num_epochs = 20
+num_epochs = 10
 lr = 0.00001
+weight_decay = 1e-8
+momentum = 0.999
 model = UNet(bilinear=True)
 model = model.to(device)
 model = nn.DataParallel(model)
 load_weights(model)
 criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr)
-scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.0001, steps_per_epoch=len(train_loader),
-                                                epochs=num_epochs)
+# optimizer = torch.optim.Adam(model.parameters(), lr)
+optimizer = optim.RMSprop(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum, foreach=True)
+grad_scaler = torch.cuda.amp.GradScaler(enabled=True)
+# scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.0001, steps_per_epoch=len(train_loader),
+#                                                 epochs=num_epochs)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)
 
 train_losses = []
 preds_per_epoch = []
@@ -553,19 +615,30 @@ for epoch in range(num_epochs):
     train_pbar = tqdm(train_loader)
 
     for batch_x, batch_y in train_pbar:
-        optimizer.zero_grad()
+        #         optimizer.zero_grad()
         batch_x, batch_y = batch_x.to(device), batch_y.to(device).long()
         pred_y = model(batch_x)  # .long()
         loss = criterion(pred_y, batch_y)
+        loss += dice_loss(
+            F.softmax(pred_y, dim=1).float(),
+            F.one_hot(batch_y, model.module.n_classes).permute(0, 3, 1, 2).float(),
+            multiclass=True
+        )
         train_loss.append(loss.item())
         train_pbar.set_description('train loss: {:.4f}'.format(loss.item()))
         #         print(loss)
-        loss.backward()
-        optimizer.step()
-        scheduler.step()
+        #         loss.backward()
+        optimizer.zero_grad(set_to_none=True)
+        #         optimizer.step()
+        grad_scaler.scale(loss).backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        grad_scaler.step(optimizer)
+        grad_scaler.update()
+
+        score = evaluate(model, train_loader, device)
+        scheduler.step(score)
 
     train_loss = np.average(train_loss)
     print(f"Average train loss {train_loss}")
     train_losses.append(train_loss)
     save_weights(model)
-    

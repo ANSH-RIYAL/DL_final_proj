@@ -72,10 +72,10 @@ def load_weights(model):
         print('image segmentation weights found')
         model.module.image_segmentation_model.load_state_dict(torch.load(best_model_path))
 
-    best_model_path = './checkpoints/combined_model.pth'
-    if os.path.isfile(best_model_path):
-        print('combined model weights found')
-        model.load_state_dict(torch.load(best_model_path))
+    # best_model_path = './checkpoints/combined_model.pth'
+    # if os.path.isfile(best_model_path):
+    #     print('combined model weights found')
+    #     model.load_state_dict(torch.load(best_model_path))
 
 
 def save_weights(model):
@@ -89,8 +89,12 @@ class combined_model(nn.Module):
     def __init__(self, device):
         super(combined_model, self).__init__()
         self.frame_prediction_model = DLModelVideoPrediction((11, 3, 160, 240), 64, 512, groups=4)
+        self.frame_prediction_model = self.frame_prediction_model.to(device)
+        self.frame_prediction_model = nn.DataParallel(self.frame_prediction_model)
 #         self.image_segmentation_model = unet_model()
-        self.image_segmentation_model = UNet()
+        self.image_segmentation_model = UNet(bilinear=True)
+        self.image_segmentation_model = self.image_segmentation_model.to(device)
+        self.image_segmentation_model = nn.DataParallel(self.image_segmentation_model)
 
     def forward(self, x):
         x = self.frame_prediction_model(x)
@@ -103,7 +107,7 @@ class combined_model(nn.Module):
 
 
 # Create Train DataLoader
-batch_size = 4
+batch_size = 5
 num_videos = 1000
 train_data = CustomDataset(num_videos)
 # load the data.
@@ -117,8 +121,8 @@ val_data = CustomDataset(num_val_videos, evaluation_mode=True)
 val_loader = DataLoader(val_data, batch_size=batch_size)
 
 # Hyperparameters:
-num_epochs = 1
-lr = 0.0001
+num_epochs = 20
+lr = 1.0e-5
 model = combined_model(device)
 model = nn.DataParallel(model)
 load_weights(model)
