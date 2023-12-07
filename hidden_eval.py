@@ -59,11 +59,13 @@ class CustomDataset(Dataset):
 
 def load_weights(model):
     best_model_path = './checkpoints/frame_prediction.pth'
+    # best_model_path = './../../checkpoint_frame_predictione13.pth'
     if os.path.isfile(best_model_path):
         print('frame prediction weights found')
         model.module.frame_prediction_model.load_state_dict(torch.load(best_model_path))
 
     best_model_path = './checkpoints/image_segmentation.pth'
+    # best_model_path = './../../image_segmentation_good.pth'
     if os.path.isfile(best_model_path):
         print('image segmentation weights found')
         model.module.image_segmentation_model.load_state_dict(torch.load(best_model_path))
