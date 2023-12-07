@@ -105,6 +105,63 @@ class combined_model(nn.Module):
         #         print(x.shape)
         return x
 
+def dice_coeff(input: torch.Tensor, target: torch.Tensor, reduce_batch_first: bool = False, epsilon: float = 1e-6):
+    # Average of Dice coefficient for all batches, or for a single mask
+    assert input.size() == target.size()
+    assert input.dim() == 3 or not reduce_batch_first
+
+    sum_dim = (-1, -2) if input.dim() == 2 or not reduce_batch_first else (-1, -2, -3)
+
+    inter = 2 * (input * target).sum(dim=sum_dim)
+    sets_sum = input.sum(dim=sum_dim) + target.sum(dim=sum_dim)
+    sets_sum = torch.where(sets_sum == 0, inter, sets_sum)
+
+    dice = (inter + epsilon) / (sets_sum + epsilon)
+    return dice.mean()
+
+
+def multiclass_dice_coeff(input: torch.Tensor, target: torch.Tensor, reduce_batch_first: bool = False,
+                          epsilon: float = 1e-6):
+    # Average of Dice coefficient for all classes
+    return dice_coeff(input.flatten(0, 1), target.flatten(0, 1), reduce_batch_first, epsilon)
+
+
+def dice_loss(input: torch.Tensor, target: torch.Tensor, multiclass: bool = False):
+    # Dice loss (objective to minimize) between 0 and 1
+    fn = multiclass_dice_coeff if multiclass else dice_coeff
+    return 1 - fn(input, target, reduce_batch_first=True)
+
+
+def evaluate(net, dataloader, device, amp=True):
+    net.eval()
+    num_val_batches = len(dataloader)
+    dice_score = 0
+
+    # iterate over the validation set
+    with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
+        count = 0
+        for batch in tqdm(dataloader, total=num_val_batches, desc='Evaluation round', unit='batch', leave=False):
+            #             print(batch)
+            image, mask_true = batch  # ['image'], batch['mask']
+
+            # move images and labels to correct device and type
+            image = image.to(device=device, dtype=torch.float32, memory_format=torch.channels_last)
+            mask_true = mask_true.to(device=device, dtype=torch.long)
+
+            # predict the mask
+            mask_pred = net(image)
+
+            mask_true = F.one_hot(mask_true, 49).permute(0, 3, 1, 2).float()
+            mask_pred = F.one_hot(mask_pred.argmax(dim=1), 49).permute(0, 3, 1, 2).float()
+            # compute the Dice score, ignoring background
+            dice_score += multiclass_dice_coeff(mask_pred[:, 1:], mask_true[:, 1:], reduce_batch_first=False)
+            count += 1
+            if count >=5:
+                break
+
+    net.train()
+    return dice_score / max(num_val_batches, 5)
+
 
 # Create Train DataLoader
 batch_size = 5
@@ -113,23 +170,20 @@ train_data = CustomDataset(num_videos)
 # load the data.
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
-# Create Val DataLoader
-batch_size = 4
-num_val_videos = 2000
-val_data = CustomDataset(num_val_videos, evaluation_mode=True)
-# load the data.
-val_loader = DataLoader(val_data, batch_size=batch_size)
 
 # Hyperparameters:
 num_epochs = 20
-lr = 1.0e-5
+lr = 0.00001
+weight_decay = 1e-8
+momentum = 0.999
+
 model = combined_model(device)
 model = nn.DataParallel(model)
 load_weights(model)
 criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr)
-scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.001, steps_per_epoch=len(train_loader),
-                                                epochs=num_epochs)
+optimizer = optim.RMSprop(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum, foreach=True)
+grad_scaler = torch.cuda.amp.GradScaler(enabled=True)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)
 
 train_losses = []
 preds_per_epoch = []
@@ -149,7 +203,13 @@ for epoch in range(num_epochs):
         #         print(loss)
         loss.backward()
         optimizer.step()
-        scheduler.step()
+        grad_scaler.scale(loss).backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        grad_scaler.step(optimizer)
+        grad_scaler.update()
+
+        score = evaluate(model, train_loader, device)
+        scheduler.step(score)
 
     train_loss = np.average(train_loss)
     print(f"Average train loss {train_loss}")
