@@ -201,7 +201,6 @@ for epoch in range(num_epochs):
         train_loss.append(loss.item())
         train_pbar.set_description('train loss: {:.4f}'.format(loss.item()))
         #         print(loss)
-        loss.backward()
         optimizer.step()
         grad_scaler.scale(loss).backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
