@@ -22,7 +22,10 @@ torch.cuda.empty_cache()
 class CustomDataset(Dataset):
     def __init__(self, num_of_vids=1000, evaluation_mode=False):
         self.evaluation_mode = evaluation_mode
-        if self.evaluation_mode:
+        if self.evaluation_mode == True:
+            self.mode = 'val'
+            start_num = 1000
+        elif self.evaluation_mode == 'hidden':
             self.mode = 'hidden'
             start_num = 15000
         else:
@@ -53,7 +56,7 @@ class CustomDataset(Dataset):
             x.append(torch.tensor(plt.imread(filepath + f'image_{j}.png')).permute(2, 0, 1))
         x = torch.stack(x, 0)
 
-        if self.evaluation_mode:
+        if self.evaluation_mode == 'hidden':
             return x
 
         file_path = f"{base_dir}{self.mode}/video_{i}/mask.npy"
@@ -132,34 +135,29 @@ def dice_loss(input: torch.Tensor, target: torch.Tensor, multiclass: bool = Fals
     return 1 - fn(input, target, reduce_batch_first=True)
 
 
-def evaluate(net, dataloader, device, amp=True):
+def evaluate(net, dataloader, device):#, amp=True):
     net.eval()
     num_val_batches = len(dataloader)
     dice_score = 0
 
     # iterate over the validation set
-    with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
-        count = 0
-        for batch in tqdm(dataloader, total=num_val_batches, desc='Evaluation round', unit='batch', leave=False):
-            #             print(batch)
-            image, mask_true = batch  # ['image'], batch['mask']
+#     with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
+    count = 0
+    for x_batch, y_batch in tqdm(dataloader, total=num_val_batches, desc='Evaluation round', unit='batch', leave=False):
 
-            # move images and labels to correct device and type
-            image = image.to(device=device, dtype=torch.float32, memory_format=torch.channels_last)
-            mask_true = mask_true.to(device=device, dtype=torch.long)
+        x_batch, y_batch = x_batch.to(device), y_batch.to(device).long()
+        # predict the mask
+        mask_pred = net(x_batch)
 
-            # predict the mask
-            mask_pred = net(image)
+        y_batch = F.one_hot(y_batch, 49).permute(0, 3, 1, 2).float()
+        mask_pred = F.one_hot(mask_pred.argmax(dim=1), 49).permute(0, 3, 1, 2).float()
+        # compute the Dice score, ignoring background
+        dice_score += multiclass_dice_coeff(mask_pred[:, 1:], y_batch[:, 1:], reduce_batch_first=False)
+        count += 1
+        if count >=5:
+            break
 
-            mask_true = F.one_hot(mask_true, 49).permute(0, 3, 1, 2).float()
-            mask_pred = F.one_hot(mask_pred.argmax(dim=1), 49).permute(0, 3, 1, 2).float()
-            # compute the Dice score, ignoring background
-            dice_score += multiclass_dice_coeff(mask_pred[:, 1:], mask_true[:, 1:], reduce_batch_first=False)
-            count += 1
-            if count >=5:
-                break
-
-    net.train()
+#     net.train()
     return dice_score / max(num_val_batches, 5)
 
 
@@ -169,6 +167,13 @@ num_videos = 1000
 train_data = CustomDataset(num_videos)
 # load the data.
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+
+
+batch_size = 5
+num_videos = 10
+val_data = CustomDataset(num_videos, evaluation_mode = True)
+# load the data.
+val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
 
 # Hyperparameters:
@@ -181,7 +186,7 @@ model = combined_model(device)
 model = nn.DataParallel(model)
 load_weights(model)
 criterion = torch.nn.CrossEntropyLoss()
-optimizer = optim.RMSprop(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum, foreach=True)
+optimizer = optim.RMSprop(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)#, foreach=True)
 grad_scaler = torch.cuda.amp.GradScaler(enabled=True)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)
 
@@ -190,24 +195,25 @@ preds_per_epoch = []
 for epoch in range(num_epochs):
     torch.cuda.empty_cache()
     train_loss = []
-    model.train()
+    
     train_pbar = tqdm(train_loader)
 
     for batch_x, batch_y in train_pbar:
-        optimizer.zero_grad()
+        model.train()
         batch_x, batch_y = batch_x.to(device), batch_y.to(device).long()
         pred_y = model(batch_x)  # .long()
         loss = criterion(pred_y, batch_y)
         train_loss.append(loss.item())
         train_pbar.set_description('train loss: {:.4f}'.format(loss.item()))
         #         print(loss)
-        optimizer.step()
+        optimizer.zero_grad()
+#         optimizer.step()
         grad_scaler.scale(loss).backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         grad_scaler.step(optimizer)
         grad_scaler.update()
 
-        score = evaluate(model, train_loader, device)
+        score = evaluate(model, val_loader, device)
         scheduler.step(score)
 
     train_loss = np.average(train_loss)
