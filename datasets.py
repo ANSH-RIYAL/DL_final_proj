@@ -14,26 +14,25 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import GaussianBlur
 from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
 
+# Ansh
+# base_dir = './../../../scratch/ar7964/dataset_videos/dataset/'
+base_dir = './../Dataset_Student/'
+
+# # Shreemayi
+# base_dir = './../../dataset/'
+
+# # Isha
+# base_dir = ''
+
 class Segmentation_Mask_Dataset(Dataset):
     def __init__(self, all_frames):
         self.frames = all_frames
-
-    #         self.masks = all_masks.cuda()
 
     def __len__(self):
         return len(self.frames)
 
     def __getitem__(self, idx):
-        #         global net_id
-        # Ansh
-        base_dir = './../../../scratch/ar7964/dataset_videos/dataset/'
-        
-#         # Shreemayi
-#         base_dir = './../../dataset/'
-        
-#         # Isha
-#         base_dir = ''
-        
+        global base_dir        
         i, j = self.frames[idx]
         file_path = f"{base_dir}train/video_{i}/image_{j}.png"
         frame = torch.tensor(plt.imread(file_path)).permute(2, 0, 1)
@@ -53,6 +52,8 @@ class Frame_Prediction_Dataset(Dataset):
         self.evaluation_mode = evaluation_mode
 
     def __getitem__(self, idx):
+        global base_dir
+        
         num_hidden_frames = 11
         num_total_frames = 22
         x = []
@@ -62,7 +63,7 @@ class Frame_Prediction_Dataset(Dataset):
             mode = 'val'
         else:
             mode = 'unlabeled'
-        filepath = f'./../../dataset/{mode}/video_{i}/'
+        filepath = f'{base_dir}{mode}/video_{i}/'
         # obtain x values.
         for j in range(num_hidden_frames):
             x.append(torch.tensor(plt.imread(filepath + f'image_{j}.png')).permute(2, 0, 1))
@@ -97,17 +98,12 @@ class Combined_Pipeline_Dataset(Dataset):
         return self.num_of_vids
 
     def __getitem__(self, idx):
+        global base_dir
+        
         num_hidden_frames = 11
         num_total_frames = 22
         x = []
         i = self.vid_indexes[idx]
-
-        #         # Isha
-        #         base_dir = './../Dataset_Student/'
-        # Shreemayi
-        base_dir = './../../dataset/'
-        # # Ansh
-        # base_dir = './../../../scratch/ar7964/dataset_videos/dataset/'
 
         filepath = f'{base_dir}{self.mode}/video_{i}/'
         # obtain x values.
