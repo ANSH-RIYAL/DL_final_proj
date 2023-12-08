@@ -45,7 +45,7 @@ model = nn.DataParallel(model)
 model = model.to(device)
 
 # Training Loop:
-best_model_path = './checkpoint_frame_prediction.pth'  # load saved model to restart from previous best model
+best_model_path = './checkpoints/frame_prediction.pth'  # load saved model to restart from previous best model
 if os.path.isfile(best_model_path):
     model.load_state_dict(torch.load(best_model_path))
 
@@ -79,7 +79,7 @@ for epoch in range(num_epochs):
     train_loss = np.average(train_loss)
     print(f"Average train loss {train_loss}")
     train_losses.append(train_loss)
-    torch.save(model.state_dict(), './checkpoint_frame_prediction.pth')
+    torch.save(model.state_dict(), './checkpoints/frame_prediction.pth')
 
     val_loss = []
     model.eval()
