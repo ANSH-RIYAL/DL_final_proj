@@ -31,7 +31,6 @@ print(device)
 
 torch.cuda.empty_cache()
 
-
 def load_weights(model):
     best_model_path = './checkpoints/image_segmentation.pth'
     if os.path.isfile(best_model_path):
@@ -75,7 +74,7 @@ model = nn.DataParallel(model)
 load_weights(model)
 criterion = torch.nn.CrossEntropyLoss()
 # optimizer = torch.optim.Adam(model.parameters(), lr)
-optimizer = optim.RMSprop(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum, foreach=True)
+optimizer = optim.RMSprop(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)#, foreach=True)
 grad_scaler = torch.cuda.amp.GradScaler(enabled=True)
 # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.0001, steps_per_epoch=len(train_loader),
 #                                                 epochs=num_epochs)
