@@ -372,7 +372,7 @@ torch.cuda.empty_cache()
 
 class CustomDataset(Dataset):
     def __init__(self, all_frames):
-        self.frames = torch.tensor(all_frames)
+        self.frames = all_frames
 
     #         self.masks = all_masks.cuda()
 
@@ -623,7 +623,7 @@ model = nn.DataParallel(model)
 load_weights(model)
 criterion = torch.nn.CrossEntropyLoss()
 # optimizer = torch.optim.Adam(model.parameters(), lr)
-optimizer = optim.RMSprop(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum, foreach=True)
+optimizer = optim.RMSprop(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)#, foreach=True)
 grad_scaler = torch.cuda.amp.GradScaler(enabled=True)
 # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.0001, steps_per_epoch=len(train_loader),
 #                                                 epochs=num_epochs)
