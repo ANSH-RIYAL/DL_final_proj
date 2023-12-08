@@ -1,5 +1,7 @@
 # Need to separate all files into function defintions and main.py part
 from models import *
+from utils import *
+from datasets import Combined_Pipeline_Dataset
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,52 +18,6 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 torch.cuda.empty_cache()
-
-
-# Data Loader.
-class CustomDataset(Dataset):
-    def __init__(self, num_of_vids=1000, evaluation_mode=False):
-        self.evaluation_mode = evaluation_mode
-        if self.evaluation_mode == True:
-            self.mode = 'val'
-            start_num = 1000
-        elif self.evaluation_mode == 'hidden':
-            self.mode = 'hidden'
-            start_num = 15000
-        else:
-            self.mode = 'train'
-            start_num = 0
-        self.vid_indexes = torch.tensor([i for i in range(start_num, num_of_vids + start_num)])
-        self.num_of_vids = num_of_vids
-
-    def __len__(self):
-        return self.num_of_vids
-
-    def __getitem__(self, idx):
-        num_hidden_frames = 11
-        num_total_frames = 22
-        x = []
-        i = self.vid_indexes[idx]
-
-        #         # Isha
-        #         base_dir = './../Dataset_Student/'
-        # Shreemayi
-        base_dir = './../../dataset/'
-        # # Ansh
-        # base_dir = './../../../scratch/ar7964/dataset_videos/dataset/'
-
-        filepath = f'{base_dir}{self.mode}/video_{i}/'
-        # obtain x values.
-        for j in range(num_hidden_frames):
-            x.append(torch.tensor(plt.imread(filepath + f'image_{j}.png')).permute(2, 0, 1))
-        x = torch.stack(x, 0)
-
-        if self.evaluation_mode == 'hidden':
-            return x
-
-        file_path = f"{base_dir}{self.mode}/video_{i}/mask.npy"
-        y = np.load(file_path)[21]  # last frame.
-        return x, y
 
 
 def load_weights(model):
@@ -88,90 +44,17 @@ def save_weights(model):
     print('model weights saved successfully')
 
 
-class combined_model(nn.Module):
-    def __init__(self, device):
-        super(combined_model, self).__init__()
-        self.frame_prediction_model = DLModelVideoPrediction((11, 3, 160, 240), 64, 512, groups=4)
-        self.frame_prediction_model = self.frame_prediction_model.to(device)
-        self.frame_prediction_model = nn.DataParallel(self.frame_prediction_model)
-#         self.image_segmentation_model = unet_model()
-        self.image_segmentation_model = UNet(bilinear=True)
-        self.image_segmentation_model = self.image_segmentation_model.to(device)
-        self.image_segmentation_model = nn.DataParallel(self.image_segmentation_model)
-
-    def forward(self, x):
-        x = self.frame_prediction_model(x)
-        #         print(x.shape)
-        x = x[:, -1]
-        #         print(x.shape)
-        x = self.image_segmentation_model(x)
-        #         print(x.shape)
-        return x
-
-def dice_coeff(input: torch.Tensor, target: torch.Tensor, reduce_batch_first: bool = False, epsilon: float = 1e-6):
-    # Average of Dice coefficient for all batches, or for a single mask
-    assert input.size() == target.size()
-    assert input.dim() == 3 or not reduce_batch_first
-
-    sum_dim = (-1, -2) if input.dim() == 2 or not reduce_batch_first else (-1, -2, -3)
-
-    inter = 2 * (input * target).sum(dim=sum_dim)
-    sets_sum = input.sum(dim=sum_dim) + target.sum(dim=sum_dim)
-    sets_sum = torch.where(sets_sum == 0, inter, sets_sum)
-
-    dice = (inter + epsilon) / (sets_sum + epsilon)
-    return dice.mean()
-
-
-def multiclass_dice_coeff(input: torch.Tensor, target: torch.Tensor, reduce_batch_first: bool = False,
-                          epsilon: float = 1e-6):
-    # Average of Dice coefficient for all classes
-    return dice_coeff(input.flatten(0, 1), target.flatten(0, 1), reduce_batch_first, epsilon)
-
-
-def dice_loss(input: torch.Tensor, target: torch.Tensor, multiclass: bool = False):
-    # Dice loss (objective to minimize) between 0 and 1
-    fn = multiclass_dice_coeff if multiclass else dice_coeff
-    return 1 - fn(input, target, reduce_batch_first=True)
-
-
-def evaluate(net, dataloader, device):#, amp=True):
-    net.eval()
-    num_val_batches = len(dataloader)
-    dice_score = 0
-
-    # iterate over the validation set
-#     with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
-    count = 0
-    for x_batch, y_batch in tqdm(dataloader, total=num_val_batches, desc='Evaluation round', unit='batch', leave=False):
-
-        x_batch, y_batch = x_batch.to(device), y_batch.to(device).long()
-        # predict the mask
-        mask_pred = net(x_batch)
-
-        y_batch = F.one_hot(y_batch, 49).permute(0, 3, 1, 2).float()
-        mask_pred = F.one_hot(mask_pred.argmax(dim=1), 49).permute(0, 3, 1, 2).float()
-        # compute the Dice score, ignoring background
-        dice_score += multiclass_dice_coeff(mask_pred[:, 1:], y_batch[:, 1:], reduce_batch_first=False)
-        count += 1
-        if count >=5:
-            break
-
-#     net.train()
-    return dice_score / max(num_val_batches, 5)
-
-
 # Create Train DataLoader
 batch_size = 5
 num_videos = 1000
-train_data = CustomDataset(num_videos)
+train_data = Combined_Pipeline_Dataset(num_videos)
 # load the data.
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
 
 batch_size = 5
 num_videos = 10
-val_data = CustomDataset(num_videos, evaluation_mode = True)
+val_data = Combined_Pipeline_Dataset(num_videos, evaluation_mode = True)
 # load the data.
 val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
